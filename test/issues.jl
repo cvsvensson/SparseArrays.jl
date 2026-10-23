@@ -1149,6 +1149,20 @@ end
     @test allocs(1000) == allocs(2000)
 end
 
+@testset "findall, findmax and findmin of a sparse vector longer than typemax(Int)" begin
+    n = Int128(2)^100
+    x = SparseVector(n, Int128[1, 5, n], [-1.0, 0.0, 2.0])
+    @test findall(!iszero, x) == Int128[1, n]
+    @test eltype(findall(!iszero, x)) == Int128
+    @test findmax(x) == (2.0, n)
+    @test findmin(x) == (-1.0, Int128(1))
+    @test findmax(-x) == (1.0, Int128(1))   # an unstored zero comes first
+    @test findmin(abs, x) == (0.0, Int128(2))
+    # `Int`, as for a dense vector, when the index type is no wider
+    @test findall(!iszero, sparsevec(Int32[2], [1.0], 3)) isa Vector{Int}
+    @test findmax(sparsevec(Int32[2], [1.0], 3)) === (1.0, 2)
+end
+
 end # SparseTestsBase
 
 end # module

@@ -382,6 +382,11 @@ function iternz end
 
 widelength(x::AbstractSparseArray) = prod(Int64.(size(x)))
 
+# The type of the linear indices that `findall`, `findmin` and `findmax` return for a
+# vector with index type `Ti`: `Int`, as for a dense vector, unless `Ti` is wider.
+_linindtype(::Type{Ti}) where {Ti<:Integer} =
+    Ti <: Base.BitInteger && sizeof(Ti) <= sizeof(Int) ? Int : promote_type(Int, Ti)
+
 
 const _restore_scalar_indexing = Expr[]
 const _destroy_scalar_indexing = Expr[]

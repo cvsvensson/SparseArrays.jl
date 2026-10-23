@@ -805,8 +805,7 @@ function findall(p::F, x::SparseVectorOrView) where {F<:Function}
         return invoke(findall, Tuple{Function, Any}, p, x)
     end
     numnz = nnz(x)
-    # `Int`, not `indtype(x)`, so both branches and dense `findall` agree
-    I = Vector{Int}(undef, numnz)
+    I = Vector{_linindtype(indtype(x))}(undef, numnz)
 
     nzind = nonzeroinds(x)
     nzval = nonzeros(x)
@@ -1576,12 +1575,13 @@ for (fun, replaces, word) in ((:findmin, :(Base.isgreater), "minimum"), (:findma
         n > 0 || throw(ArgumentError($word * " over empty array is not allowed"))
         nzvals = nonzeros(x)
         m = length(nzvals)
-        m == 0 && return f(zero(T)), Int(firstindex(x))
+        I = _linindtype(indtype(x))
+        m == 0 && return f(zero(T)), I(firstindex(x))
         val, index = $fun(f, nzvals)
-        m == n && return val, index
-        index = Int(nonzeroinds(x)[index])
+        m == n && return val, I(index)
+        index = I(nonzeroinds(x)[index])
         zeroval = f(zero(T))
-        zindex = _firstimplicitzero(nonzeroinds(x))
+        zindex = I(_firstimplicitzero(nonzeroinds(x)))
         if $replaces(val, zeroval) || (zindex < index && !$replaces(zeroval, val))
             return zeroval, zindex
         end
