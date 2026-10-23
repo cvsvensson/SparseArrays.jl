@@ -381,6 +381,8 @@ julia> collect(SparseArrays.iternz(x))
 function iternz end
 
 widelength(x::AbstractSparseArray) = prod(Int64.(size(x)))
+# the length of a vector fits its index type, which can be wider than `Int64`
+widelength(x::AbstractSparseVector) = length(x)
 
 
 const _restore_scalar_indexing = Expr[]

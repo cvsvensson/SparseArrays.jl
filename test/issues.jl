@@ -1149,6 +1149,15 @@ end
     @test allocs(1000) == allocs(2000)
 end
 
+@testset "map and broadcast of a sparse vector longer than typemax(Int)" begin
+    n = Int128(2)^100
+    x = SparseVector(n, Int128[1, 5, n], [-1.0, 0.0, 2.0])
+    for (y, f) in ((map(abs, x), abs), (2 .* x, v -> 2v))
+        @test y isa SparseVector{Float64,Int128} && length(y) == n
+        @test y[1] == f(-1.0) && y[n] == f(2.0) && nnz(y) <= 3
+    end
+end
+
 end # SparseTestsBase
 
 end # module
