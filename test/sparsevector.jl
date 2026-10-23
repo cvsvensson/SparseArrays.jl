@@ -1355,6 +1355,31 @@ end
                 @test y == Array(x2 * c + x)
             end
         end
+        @testset "axpby!" begin
+            y = copy(x)
+            @test axpby!(2.0, x2, 3.0, y) === y
+            @test mismatch(y, axpby!(2.0, xf2, 3.0, copy(xf))) === nothing
+            yf = copy(xf)
+            @test axpby!(2.0, x2, 3.0, yf) === yf && yf == axpby!(2.0, xf2, 3.0, copy(xf))
+            # the work does not grow with the length
+            muls(n) = (v = opcount_sparse(sparsevec([1, n], [1.0, 2.0], n));
+                       mulcount(() -> axpby!(OpCount(2.0), v, OpCount(3.0), copy(v))))
+            @test muls(100) == muls(10_000)
+            @static if COMPREHENSIVE
+            # an infinite `a` reaches the entries that `x` does not store
+            y = copy(x)
+            @test mismatch(axpby!(Inf, x2, 1.0, y), axpby!(Inf, xf2, 1.0, copy(xf))) === nothing
+            # `x` is `y`
+            y = copy(x2)
+            @test mismatch(axpby!(2.0, y, 3.0, y), 5 * xf2) === nothing
+            f = SparseArrays.FixedSparseVector(copy(x))
+            @test axpby!(2.0, x, 3.0, f) === f && f == 5 * xf
+            f = SparseArrays.FixedSparseVector(copy(x))
+            @test_throws ArgumentError axpby!(2.0, x2, 3.0, f)
+            @test f == xf
+            @test_throws DimensionMismatch axpby!(2.0, x2, 3.0, spzeros(15))
+            end
+        end
         @testset "dot" begin
             dv = dot(xf, xf2)
             @test dot(x, x) == sum(abs2, x)

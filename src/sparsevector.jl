@@ -1638,6 +1638,24 @@ function LinearAlgebra.axpy!(a::Number, x::SparseVectorOrView, y::AbstractVector
     return y
 end
 
+function LinearAlgebra.axpby!(a::Number, x::SparseVectorOrView, b::Number, y::AbstractVector)
+    require_one_based_indexing(x, y)
+    length(x) == length(y) || throw(DimensionMismatch(
+        "Vector x has a length $(length(x)) but y has a length $(length(y))"))
+    # an infinite or NaN `a` makes every entry that `x` does not store contribute
+    _iszero(_densezero(x) * a) || return copyto!(y, axpby!(a, Vector(x), b, Vector(y)))
+    _is_fixed(y) && return copyto!(y, axpby!(a, x, b, Vector(y)))
+    x = HigherOrderFns._unaliasarg(y, x)
+    rmul!(y, b)
+    nzind = nonzeroinds(x)
+    nzval = nonzeros(x)
+    for i in eachindex(nzind, nzval)
+        ii = nzind[i]
+        y[ii] = nzval[i] * a + y[ii]
+    end
+    return y
+end
+
 
 function (/)(x::SparseVectorOrView, a::Number)
     # an entry that is not stored divides to `0 / a`, which is not zero for a zero or NaN `a`
