@@ -1205,7 +1205,7 @@ are accepted here too.
 """
 @inline function kron!(C::SparseMatrixCSC, A::AbstractSparseMatrixCSC, B::AbstractSparseMatrixCSC)
     mA, nA = size(A); mB, nB = size(B)
-    mC, nC = mA*mB, nA*nB
+    mC, nC = Base.checked_mul(mA, mB), Base.checked_mul(nA, nB)
     @boundscheck size(C) == (mC, nC) || throw(DimensionMismatch("target matrix needs to have size ($mC, $nC)," *
         " but has size $(size(C))"))
     rowvalC = getrowval(C)
@@ -1239,8 +1239,9 @@ are accepted here too.
     return C
 end
 @inline function kron!(z::SparseVector, x::AbstractCompressedVector, y::AbstractCompressedVector)
-    @boundscheck length(z) == length(x)*length(y) || throw(DimensionMismatch("length of " *
-        "target vector needs to be $(length(x)*length(y)), but has length $(length(z))"))
+    nz = Base.checked_mul(length(x), length(y))
+    @boundscheck length(z) == nz || throw(DimensionMismatch("length of " *
+        "target vector needs to be $nz, but has length $(length(z))"))
     nnzx, nnzy = nnz(x), nnz(y)
     nzind = nonzeroinds(z)
     nzval = nonzeros(z)
@@ -1298,7 +1299,7 @@ julia> kron(sparse([1 0; 0 2]), [1 2; 0 3])
 function kron(A::AbstractSparseMatrixCSC, B::AbstractSparseMatrixCSC)
     mA, nA = size(A)
     mB, nB = size(B)
-    mC, nC = mA*mB, nA*nB
+    mC, nC = Base.checked_mul(mA, mB), Base.checked_mul(nA, nB)
     Tv = typeof(oneunit(eltype(A))*oneunit(eltype(B)))
     Ti = promote_type(indtype(A), indtype(B))
     C = spzeros(Tv, Ti, mC, nC)
@@ -1310,7 +1311,7 @@ function kron(x::AbstractCompressedVector, y::AbstractCompressedVector)
     nnzz = nnzx*nnzy # number of nonzeros in new vector
     nzind = Vector{promote_type(indtype(x), indtype(y))}(undef, nnzz) # the indices of nonzeros
     nzval = Vector{typeof(oneunit(eltype(x))*oneunit(eltype(y)))}(undef, nnzz) # the values of nonzeros
-    z = SparseVector(length(x)*length(y), nzind, nzval)
+    z = SparseVector(Base.checked_mul(length(x), length(y)), nzind, nzval)
     return @inbounds kron!(z, x, y)
 end
 # extend to annotated sparse arrays, but leave out the (dense ⊗ dense)-case

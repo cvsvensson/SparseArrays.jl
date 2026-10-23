@@ -1149,6 +1149,19 @@ end
     @test allocs(1000) == allocs(2000)
 end
 
+@testset "kron throws when the length of the result overflows" begin
+    x = sparsevec(Int8[1, 2], [1.0, 2.0], Int8(100))
+    @test_throws OverflowError kron(x, x)
+    @test_throws OverflowError kron!(spzeros(Float64, Int8, 16), x, x)
+    # (2^(w/2) + 1)^2 wraps to a positive `Int`
+    m = (1 << (Sys.WORD_SIZE ÷ 2)) + 1
+    A = sparse([1, m], [1, 1], [1.0, 2.0], m, 1)
+    @test_throws OverflowError kron(A, A)
+    C = spzeros(m * m, 1)
+    @test_throws OverflowError kron!(C, A, A)
+    @test nnz(C) == 0
+end
+
 end # SparseTestsBase
 
 end # module
